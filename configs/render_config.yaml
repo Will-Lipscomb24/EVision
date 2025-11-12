@@ -1,0 +1,28 @@
+# settings.yaml
+
+render_params:
+  num_animations: 25
+  frames_per_animation: 150
+  base_name: "run"
+
+cam_params:
+  focal_length: 15
+  fps: 100
+  sensor_width: 6.221
+  sensor_height: 3.499
+  sensor_fit: "HORIZONTAL"
+  resolution_x: 1280
+  resolution_y: 720
+  format: "PNG"
+
+output_params:
+  output_path: "/home/will/projects/EVision/data/render_output"
+  output_ext: 'PNG'
+  base_name: 'run'
+
+scene_data:
+  start_location: [0.0, 0.0, 1.0]
+  x_step: 2.0
+
+physics:
+  reset_between_runs: true
