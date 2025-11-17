@@ -1,0 +1,11 @@
+Working with Docker Container:
+A. To open an existing container run:
+	docker exec -it <container name> bash
+B. If you want to use your host's display in the container:
+	On host run:	
+		xhost +local:root
+C. To set the environment variables inn the esim docker container run:
+	source /root/sim_Ws/devel/setep.bash
+	
+	
+	
