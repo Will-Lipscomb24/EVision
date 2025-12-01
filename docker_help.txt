@@ -5,7 +5,48 @@ B. If you want to use your host's display in the container:
 	On host run:	
 		xhost +local:root
 C. To set the environment variables inn the esim docker container run:
-	source /root/sim_Ws/devel/setep.bash
+	source /root/sim_ws/devel/setup.bash
 	
-	
+RUNNNING THE SIMULATOR:
+A. Set the absolute paths to the config file by running:
+	roscd esim_ros
+	gedit cfg/example.conf 
+B. Run the simulator pointing to the config file:
+	roslaunch esim_ros esim.launch config:=cfg/example.conf
+
+	B1. To run the simulator by looping through each image run the following in bash:
+		TEXTURE_DIR=<.jpg image directory>
+		OUTPUT_DIR=<.bag output directory>
+
+		mkdir -p "$OUTPUT_DIR"
+
+		for img in "$TEXTURE_DIR"/*.jpg; do
+			echo "Running ESIM with texture: $img"
+
+			rosrun event_camera_simulator esim_node \
+				--flagfile=/home/will/sim_ws/sim.conf \
+				--renderer_texture="$img" \
+				--path_to_output_bag="$OUTPUT_DIR/$(basename "$img" .jpg).bag"
+		done
+
+C. To visualize the .bag output of the simulator run:
+	roscd esim_visualization
+	rviz -d cfg/esim.rviz
+
+D. These are the topics saved in the rosbag after running the simulation:
+	topics:  /cam0/camera_info         20 msgs    : sensor_msgs/CameraInfo    
+             /cam0/depthmap            20 msgs    : sensor_msgs/Image         
+             /cam0/events             113 msgs    : dvs_msgs/EventArray       
+             /cam0/image_corrupted     56 msgs    : sensor_msgs/Image         
+             /cam0/image_raw           57 msgs    : sensor_msgs/Image         
+             /cam0/optic_flow          20 msgs    : esim_msgs/OpticFlow       
+             /cam0/pointcloud          20 msgs    : sensor_msgs/PointCloud2   
+             /cam0/pose              2413 msgs    : geometry_msgs/PoseStamped 
+             /cam0/twist             2413 msgs    : geometry_msgs/TwistStamped
+             /imu                    2000 msgs    : sensor_msgs/Imu           
+             /tf                     2413 msgs    : tf/tfMessage
+For our model, we need to save:
+	image_raw
+	pointcloud
+	events
 	
