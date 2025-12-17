@@ -1,0 +1,10 @@
+general:
+  frame_height: 2048
+  frame_width: 1280
+
+
+event_encoder:
+  bins: 5
+  frame_depth: 16
+
+img_encoder:
