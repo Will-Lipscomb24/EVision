@@ -5,6 +5,9 @@ from metavision_core.event_io import EventDatReader
 from metavision_core_ml.preprocessing.event_to_tensor_torch import event_cd_to_torch
 import numpy as np
 import cv2
+import os 
+import glob
+import random
 
 
 def events_to_voxel_grid(events, num_bins, width, height):
@@ -120,3 +123,59 @@ def vis_voxel_bin(voxel_grid, bin_index=0):
     cv2.imshow(f'Bin {bin_index}', img_uint8)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+def over_expose(input_folder, output_folder, exposure_range=(2, 3), gamma_range=(1, 2)):
+    """
+    Randomly adjusts exposure and gamma, then saves the result.
+    """
+    files = glob.glob(os.path.join(input_folder, "*.jpg")) 
+
+    for file in files:
+        # 1. Randomly select parameters
+        exposure_factor = random.uniform(*exposure_range)
+        gamma = random.uniform(*gamma_range)
+        image = cv2.imread(file)
+        
+        # 2. Convert to float 0-1
+        img_float = image.astype(np.float32) / 255.0
+
+        # 3. Apply exposure (multiplicative)
+        img_exposed = np.clip(img_float * exposure_factor, 0, 1)
+
+        # 4. Apply Gamma
+        if gamma == 0:
+            img_gamma = img_exposed
+        else:
+            img_gamma = np.power(img_exposed, 1.0 / gamma)
+
+        # 5. Convert back to uint8
+        final_image = (img_gamma * 255).astype(np.uint8)
+        
+        # 6. Save to specified folder
+        os.makedirs(output_folder, exist_ok=True)
+        
+        filename = os.path.basename(file)
+        # THIS LINE ENSURES THE NAME IS THE SAME
+        save_path = os.path.join(output_folder, filename)
+        
+        cv2.imwrite(save_path, final_image)
+
+def resize_images(input_folder_path, output_path, new_height, new_width):
+    os.makedirs(output_path, exist_ok=True)
+    
+    files = glob.glob(os.path.join(input_folder_path, "*.jpg")) 
+    
+    print(f"Found {len(files)} images to resize.")
+
+    for file in files:
+        img = cv2.imread(file)
+        if img is None: 
+            continue
+            
+        resized_img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        
+        filename = os.path.basename(file)
+        save_path = os.path.join(output_path, filename)
+        
+        cv2.imwrite(save_path, resized_img)
+
