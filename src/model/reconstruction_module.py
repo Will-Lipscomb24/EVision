@@ -1,7 +1,32 @@
-import torch
+
 import torch.nn as nn
 import torch.nn.functional as F
-from src.model.image_encoder import ResidualBlock
+
+
+class ResidualBlock(nn.Module):
+    """
+    Standard Basic Residual Block as used in ResNet.
+    Consists of: Conv -> BN -> ReLU -> Conv -> BN -> (+ shortcut) -> ReLU
+    """
+    def __init__(self, channels):
+        super(ResidualBlock, self).__init__()
+        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(channels)
+
+    def forward(self, x):
+        residual = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = out + residual # Add the identity shortcut
+        out = self.relu(out)
+        return out
+
 
 class ReconstructionBlock(nn.Module):
     """

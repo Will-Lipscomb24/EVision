@@ -21,9 +21,9 @@ class DeformableConvLayer(nn.Module):
         # Generates (2 * k*k) offsets and (1 * k*k) mask values
         self.offset_mask_net = nn.Sequential(
             nn.Conv2d(2 * in_channels, in_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=False),
+            nn.ReLU(inplace=True),
             nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=False),
+            nn.ReLU(inplace=True),
             nn.Conv2d(in_channels, 3 * kernel_size * kernel_size, kernel_size=3, padding=1)
         )
         
@@ -57,7 +57,7 @@ class DeformableConvLayer(nn.Module):
         mask_logits = out[:, offset_channels:, :, :]
         
         # Epsilon (1e-7) prevents SqrtBackward0 NaNs during interpolation
-        mask = torch.sigmoid(mask_logits) + 1e-7 
+        mask = torch.sigmoid(mask_logits) 
         
         # Perform the actual Deformable Convolution
         f_Edc = deform_conv2d(
@@ -65,7 +65,7 @@ class DeformableConvLayer(nn.Module):
             padding=self.padding, mask=mask
         )
         
-        return F.relu(f_Edc, inplace=False)
+        return F.relu(f_Edc, inplace=True)
 
 class SpatialAttentionBlock(nn.Module):
     """
@@ -152,8 +152,8 @@ class DualBranchFusion(nn.Module):
         # a. Apply Deformable Conv to align f_F to f_E -> f_Edc
         f_Edc = self.dcb_layer(f_F, f_E)
         
-        # b. Refine f_Edc by concatenating with f_E -> f_EFdc
-        combined_dcb = torch.cat([f_Edc, f_E], dim=1)
+        # b. Refine f_Edc by concatenating with f_F -> f_EFdc
+        combined_dcb = torch.cat([f_Edc, f_F], dim=1)
         f_EFdc = self.dcb_refinement(combined_dcb)
         
         # 3. Final Fusion

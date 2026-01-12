@@ -2,11 +2,15 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from src.custom_loss import custom_loss
+from src.data_loaders import collate_fn_skip_bad
 from tqdm import tqdm
 import yaml
 import glob
+
+
 
 # Imports from your src folder
 from src.data_loaders import EnhancementDataset
@@ -35,8 +39,8 @@ LR = cfg['training']['learning_rate']
 LPIPS_NET = cfg['training']['lpips_net']
 WORKERS = cfg['training']['num_workers']
 SAVES = cfg['training']['num_saves']
-
-
+LR_REDUCTION = cfg['training']['learning_rate_reduction']
+LR_STEP = cfg['training']['learning_rate_step_size']
 
 def train():
     # 1. SETUP
@@ -69,7 +73,8 @@ def train():
         shuffle=True,
         num_workers=4,
         pin_memory=True,
-        persistent_workers=True
+        persistent_workers=True,
+        collate_fn=collate_fn_skip_bad
     )
 
     # 3. MODEL, LOSS, OPTIMIZER
@@ -86,6 +91,8 @@ def train():
 
     optimizer = optim.Adam(model.parameters(), lr=float(LR))
 
+    scheduler = StepLR(optimizer, step_size=LR_STEP, gamma=LR_REDUCTION)
+
     # 4. TRAINING LOOP
     num_epochs = EPOCHS
     
@@ -97,6 +104,8 @@ def train():
         loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
 
         for batch in loop:
+            if batch is None:
+                continue
             # A. Get Data
             # Note: dictionary keys must match what your Dataset returns
             events = batch['input_events'].to(device)
@@ -110,25 +119,12 @@ def train():
                 output = model(events, input_frame)
 
                 # C. Compute Loss
-                loss = criterion(output + 1e-8, target)
+                loss = criterion(output, target)
 
                 # D. Backward Pass
                 # The error usually triggers exactly at this line
                 loss.backward()
-
-            # # B. Forward Pass
-            # # Zero gradients from previous step
-            # optimizer.zero_grad()
-            
-            # # Run model
-            # output = model(events, input_frame)
-
-            # # C. Compute Loss
-            # loss = criterion(output, target)
-
-            # # D. Backward Pass (Backprop)
-            # loss.backward()
-            
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             # E. Update Weights
             optimizer.step()
 
@@ -136,11 +132,14 @@ def train():
             running_loss += loss.item()
             loop.set_postfix(loss=loss.item())
 
+        scheduler.step()
+
         # 5. SAVE CHECKPOINT
         epoch_loss = running_loss / len(train_loader)
         print(f"Epoch {epoch+1} finished. Avg Loss: {epoch_loss:.6f}")
+        save_int = EPOCHS // SAVES
 
-        if (epoch + 1) % EPOCHS/SAVES == 0:
+        if (epoch + 1) % save_int == 0:
             save_path = os.path.join(
                 SAVE_DIR, 
                 f"checkpoint_epoch_{epoch+1}.pth"

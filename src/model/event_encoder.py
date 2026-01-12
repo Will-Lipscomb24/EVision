@@ -30,8 +30,10 @@ class ReceptiveFieldBlock(nn.Module):
         super(ReceptiveFieldBlock, self).__init__()
         
         # Internal channels for the branches. Reducing capacity internally
-        # is standard practice to manage parameter count.
-        inter_channels = in_channels // 2 
+        # is standard practice to manage parameter count
+
+        # With an input channel of 16, to not choke the network we will keep the sae number of intermediate channels
+        inter_channels = in_channels // 2  
 
         # --- Branch 1: 1x1 Conv -> 3x3 Conv ---
         self.branch1 = nn.Sequential(

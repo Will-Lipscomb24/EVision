@@ -1,10 +1,33 @@
-general:
-  frame_height: 2048
-  frame_width: 1280
 
+data:
+  events_dir: "data/data_formatted/events"
+  input_dir: "data/data_formatted/input"
+  target_dir: "data/data_formatted/target"
+model:
+  num_bins: 5
+  height: 256 
+  width: 256
+  base_channels: 64
+  encoder_channels: 16
+  rfb_blocks: 3
+event_sim:
+  Cp: 0.05
+  Cn: 0.05
+  refractory_period: 1
+  sigma_threshold: 0
+  cutoff_hz: 0
+  shot_noise_rate_hz: 5
+  set_frames: 25
+  pause_probability: 0
+training: 
+  save_dir: "model_output"
+  epochs: 100
+  batch_size: 16
+  learning_rate: 0.0002
+  learning_rate_reduction: 0.75
+  learning_rate_step_size: 10
+  lpips_net: 'alex'
+  num_workers: 4
+  num_saves: 10
+  
 
-event_encoder:
-  bins: 5
-  frame_depth: 16
-
-img_encoder:

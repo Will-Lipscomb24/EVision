@@ -8,7 +8,7 @@ from src.model.dual_branch_fusion import DualBranchFusion
 from src.model.reconstruction_module import ReconstructionBlock
 
 class EventImageFusionNet(nn.Module):
-    def __init__(self, num_bins=5, base_channels=64, enc_channels=16, num_rfb_blocks=3, img_in_channels=1, cbam_reduction=16):
+    def __init__(self, num_bins=5, enc_channels=16, base_channels=64,num_rfb_blocks=3, img_in_channels=1, cbam_reduction=16):
         super(EventImageFusionNet, self).__init__()
         
         # 1. Encoders
