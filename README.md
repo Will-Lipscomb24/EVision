@@ -5,6 +5,13 @@ Dataset:
 The dataset used for the training & validation pipelines is the MSCOCO 2017 train images(118K/18GB) and 2017 val images(5K/1GB).
 Only a subset of the full training dataset was used (~40K).
 
+### A. 
+To extract a subset of the dataset into a new dir run: 
+
+`mkdir image_subset`
+
+`ls | shuf -n 20000 | xargs -I{} cp "{}" image_subset/`
+
 Dataset Manipulation:
 There are 2 ways in which we will modify the original data:
 1. Using the ground truth imagery to generate small event-camera clips using Metavision OpenEB tools.
@@ -14,7 +21,9 @@ There are 2 ways in which we will modify the original data:
 
 1
 In order to generate events from images, we will use OpenEB planar renderer. To install OpenEB,
-follow this guideline: https://github.com/prophesee-ai/openeb
+follow the guideline here: https://github.com/prophesee-ai/openeb
+
+
 
 
 
