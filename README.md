@@ -1,6 +1,24 @@
 # EVision
 This repository will serve as a pipeline for image reconstuction using a RGB/Event Camera data fusion.
 
+Dataset:
+The dataset used for the training & validation pipelines is the MSCOCO 2017 train images(118K/18GB) and 2017 val images(5K/1GB).
+Only a subset of the full training dataset was used (~40K).
+
+Dataset Manipulation:
+There are 2 ways in which we will modify the original data:
+1. Using the ground truth imagery to generate small event-camera clips using Metavision OpenEB tools.
+2. Over-exposing the ground truth images to generate the models input image.
+
+
+
+1
+In order to generate events from images, we will use OpenEB planar renderer. To install OpenEB,
+follow this guideline: https://github.com/prophesee-ai/openeb
+
+
+
+
 Working with Docker Container:
 AA. To initialize a container from an image run: 
 				docker run -it \
