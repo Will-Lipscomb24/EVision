@@ -5,7 +5,7 @@ import yaml
 
 # --- Configuration ---
 # You can use absolute paths or relative paths
-BASE_DIR = "./data/data_formatted"
+BASE_DIR = "./data/data_unformatted"
 INPUT_DIR = os.path.join(BASE_DIR, "target")
 EVENTS_DIR = os.path.join(BASE_DIR, "events")
 
@@ -13,11 +13,15 @@ EVENTS_DIR = os.path.join(BASE_DIR, "events")
 # Path to the simulator script
 # Ensure this path is exactly correct on your system
 SIMULATOR_SCRIPT = "/home/will/projects/EVision/tools/openeb/sdk/modules/core_ml/python/samples/viz_video_to_event_simulator/viz_video_to_event_simulator.py"
-
+GPU_SIMULATOR_SCRIPT = "/home/will/projects/EVision/tools/openeb/sdk/modules/core_ml/python/samples/viz_video_to_event_gpu_simulator/viz_video_to_event_gpu_simulator.py"
+GPU_SIM = "/home/will/projects/EVision/scripts/viz_video_to_event_gpu_simulator_w_motion.py"
 with open('configs/config.yaml','r') as f:
     config = yaml.safe_load(f)
-ev_params = config["event_sim"]
 
+ev_config = config['event_sim']
+ev_params = config["event_sim"]['cpu']
+ev_params_gpu = config['event_sim']['gpu']
+mp = config['model']
 
 def run_simulation():
     # 1. Create the output directory if it doesn't exist
@@ -39,18 +43,18 @@ def run_simulation():
 
             # 4. Construct the command arguments
             cmd = [
-                "python", SIMULATOR_SCRIPT,
+                "python", GPU_SIMULATOR_SCRIPT,
                 str(input_img),
-                "-o", str(output_dat),
-                "--no_display",
-                "--Cp", str(ev_params['Cp']),
-                "--Cn", str(ev_params['Cn']),
-                "--refractory_period", str(ev_params['refractory_period']),
-                "--sigma_threshold", str(ev_params['sigma_threshold']),
-                "--cutoff_hz", str(ev_params['cutoff_hz']),
-                "--shot_noise_rate_hz", str(ev_params['shot_noise_rate_hz']),
-                "--set_frames", str(ev_params['set_frames']),
-                "--pause_probability", str(ev_params['pause_probability'])
+                "--threshold-mu", str(ev_params_gpu['mean_mu']),
+                "--threshold-std", str(ev_params_gpu['std_mu']),
+                "--refractory-period", str(ev_params['refractory_period']),
+                "--cutoff-hz", str(ev_params['cutoff_hz']),
+                "--leak-rate-hz", str(ev_params['leak_rate_hz']),
+                "--shot-noise-hz", str(ev_params['shot_noise_rate_hz']),
+                "--batch-size", str(ev_params_gpu['batch_size']),
+                "--nbins",str(ev_params_gpu['voxel_bins']),
+                "--height", str(mp['height']),
+                "--width", str(mp['width'])
             ]
 
             try:
