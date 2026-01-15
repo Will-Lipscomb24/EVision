@@ -1,24 +1,28 @@
 
-data:
-  events_dir: "data/data_formatted/events"
-  input_dir: "data/data_formatted/input"
-  target_dir: "data/data_formatted/target"
 model:
   num_bins: 5
-  height: 256 
-  width: 256
+  height: 512
+  width: 512
   base_channels: 64
   encoder_channels: 16
   rfb_blocks: 3
 event_sim:
-  Cp: 0.05
-  Cn: 0.05
-  refractory_period: 1
-  sigma_threshold: 0
-  cutoff_hz: 0
-  shot_noise_rate_hz: 5
-  set_frames: 25
-  pause_probability: 0
+  cpu:
+    Cp: 0.05
+    Cn: 0.05
+    refractory_period: 1
+    sigma_threshold: 0
+    cutoff_hz: 0
+    shot_noise_rate_hz: 5
+    set_frames: 25
+    pause_probability: 0
+    leak_rate_hz: 0
+  gpu:
+    mean_mu: 0.1
+    std_mu: 0.05
+    batch_size: 8
+    voxel_bins: 5
+
 training: 
   save_dir: "model_output"
   epochs: 100
