@@ -12,95 +12,47 @@ import random
 
 def events_to_voxel_grid(events, num_bins, width, height):
     """
-    Builds a voxel grid with trilinear interpolation.
-    
-    Args:
-        events: Tensor of shape (N, 4) -> [x, y, p, t]
-        num_bins: B in the formula (number of temporal bins)
-        width: W in the formula
-        height: H in the formula
-        
-    Returns:
-        voxel_grid: Tensor of shape (num_bins, height, width)
+    Builds a voxel grid using trilinear interpolation (voting).
+    Each event distributes its polarity across 8 neighboring voxels 
+    (2 in time, 4 in space).
     """
     device = events.device
-    
     x = events[:, 0]
     y = events[:, 1]
-    p = events[:, 2]
+    p = events[:, 2].float()
     t = events[:, 3]
 
-    # --- Step 1: Normalize Timestamp (Equation 2 in your image) ---
-    # t_star = (t - t_min) / (t_max - t_min) * (B - 1)
-    t_min = t[0]
-    t_max = t[-1]
+    # --- 1. Temporal Normalization ---
+    t_min, t_max = t[0], t[-1]
+    dt = t_max - t_min
     
-    # Avoid division by zero if all events are at the same time
-    if t_max == t_min:
-        t_norm = torch.zeros_like(t)
-    else:
-        t_norm = (t - t_min) / (t_max - t_min) * (num_bins - 1)
+    # Map t to the range [0, num_bins - 1]
+    t_norm = (t - t_min) * (num_bins - 1) / (dt + 1e-9) if dt > 0 else torch.zeros_like(t)
 
-    # --- Step 2: Temporal Interpolation (Equation 1 in your image) ---
-    # We find the two integer temporal bins: t0 (left) and t1 (right)
-    # The weight is max(0, 1 - |t_n - t*|)
-    
-    t0 = torch.floor(t_norm).long()
-    t0 = torch.clamp(t0, 0, num_bins - 1)
-    
-    t1 = t0 + 1
-    t1 = torch.clamp(t1, 0, num_bins - 1)
+    # --- 2. Define 8-way Neighbor Indices ---
+    # Temporal neighbors
+    bin1 = torch.floor(t_norm).long().clamp(0, num_bins - 1)
+    bin2 = (bin1 + 1).clamp(0, num_bins - 1)
 
-    # Calculate distance |t_n - t*| for the two bins
-    # For bin t0, the distance is (t_norm - t0)
-    w_t0 = 1.0 - (t_norm - t0.float())  # This is max(0, 1 - |t0 - t*|)
-    w_t1 = 1.0 - w_t0                   # This is max(0, 1 - |t1 - t*|)
+    # --- 3. Calculate Trilinear Weights ---
+    # Fractional distances
+    dt_frac = t_norm - bin1.float()
 
-    # --- Step 3: Spatial Interpolation (Bilinear) ---
-    # Since the text says "trilinear voting", we must also split x and y.
-    
-    x0 = torch.floor(x).long()
-    y0 = torch.floor(y).long()
-    x1 = x0 + 1
-    y1 = y0 + 1
-    
-    # Clamp coordinates to ensure we stay inside the image [W, H]
-    x0 = torch.clamp(x0, 0, width - 1)
-    x1 = torch.clamp(x1, 0, width - 1)
-    y0 = torch.clamp(y0, 0, height - 1)
-    y1 = torch.clamp(y1, 0, height - 1)
+    # Temporal weights
+    w_t0 = 1.0 - dt_frac
+    w_t1 = dt_frac
 
-    # Calculate spatial weights
-    wa = (x1.float() - x) * (y1.float() - y)
-    wb = (x1.float() - x) * (y - y0.float())
-    wc = (x - x0.float()) * (y1.float() - y)
-    wd = (x - x0.float()) * (y - y0.float())
-
-    # --- Step 4: Accumulate (Voting) ---
+  # --- 3. Accumulate into Grid ---
     voxel_grid = torch.zeros((num_bins, height, width), dtype=torch.float32, device=device)
 
-    # Helper function to add values to the grid using index_put_ (fast on GPU)
-    def add_votes(t_idx, y_idx, x_idx, weights):
-        # We flatten the index to treat the 3D grid as a 1D array for scattering
-        flat_indices = t_idx * (height * width) + y_idx * width + x_idx
-        voxel_grid.put_(flat_indices, weights * p, accumulate=True)
-
-    # We must vote into 8 locations (2 temporal * 4 spatial)
+    # Accumulate for bin t0
+    # index_put_ handles multiple events hitting the same pixel (atomic add)
+    voxel_grid.index_put_((bin1, y, x), w_t0 * p, accumulate=True)
     
-    # Votes for Temporal Bin t0
-    add_votes(t0, y0, x0, w_t0 * wa)
-    add_votes(t0, y1, x0, w_t0 * wb)
-    add_votes(t0, y0, x1, w_t0 * wc)
-    add_votes(t0, y1, x1, w_t0 * wd)
-
-    # Votes for Temporal Bin t1
-    add_votes(t1, y0, x0, w_t1 * wa)
-    add_votes(t1, y1, x0, w_t1 * wb)
-    add_votes(t1, y0, x1, w_t1 * wc)
-    add_votes(t1, y1, x1, w_t1 * wd)
+    # Accumulate for bin t1
+    voxel_grid.index_put_((bin2, y, x), w_t1 * p, accumulate=True)  
 
     return voxel_grid
-
 
 def vis_voxel_bin(voxel_grid, bin_index=0):
     # Convert from Torch to Numpy if necessary
