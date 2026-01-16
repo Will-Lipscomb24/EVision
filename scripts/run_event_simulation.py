@@ -54,11 +54,11 @@ def run_simulation():
     try:
         # 5. Run the command
         # capture_output=True keeps your terminal clean, remove it to see simulator logs
-        subprocess.run(cmd, check=True) 
+        subprocess.run(cmd, check=False) 
        
         
     except subprocess.CalledProcessError as e:
-        print("ERROR processing : {e}")
+        print("ERROR processing")
 
 # else:
 #     # Optional: Uncomment if you want to see what's missing
