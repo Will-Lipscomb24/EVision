@@ -24,18 +24,25 @@ sudo apt -y install libopencv-dev libboost-all-dev libusb-1.0-0-dev libprotobuf-
 sudo apt -y install libhdf5-dev hdf5-tools libglew-dev libglfw3-dev libcanberra-gtk-module ffmpeg
 ```
 
-* In the main directory, EVision, there is an **environment.yaml** file. Assuming that conda miniforge is already installed, run:
+* We will create a Conda environment to manage the dependencies:
 ```bash
-conda env create -f environment.yaml
+conda create --name evision python=3.11
+conda activate evision
 ```
+
+```bash 
+pip install -r OPENEB_SRC_DIR/utils/python/requirements_openeb.txt 
+pip install -r OPENEB_SRC_DIR/utils/python/requirements_pytorch_cuda.txt
+```
+
 * Now we will compile. 
 	1. In your openeb dir run: `mkdir build & cd build`
-	2. Specify Python version to use and generate cmake:  `cmake .. -DBUILD_TESTING=OFF`
-	3. Compile: `cmake --build . --config Release -- -j 4`
+	2. Generate cmake `cmake .. -DPython3_EXECUTABLE=$(which python) -DCOMPILE_PYTHON3=ON`
+	3. Compile: `make -j$(nproc)`
 
 * We will use OpenEB directly from the build folder. This will allow for the source code to be modified if necessary. To do so we need to add a source line to `~/.bashrc`.
 ```bash
-source <path to build folder>/utils/scripts/setup.env
+source <path to build folder>/utils/scripts/setup_env.sh
 ```
 
 * Now the environment is setup so that OpenEB modules can be imported into scripts.
@@ -56,8 +63,3 @@ EVision/src/utils. Once this is complete, run the script **run_event_simulation.
 * Note: You will need to change the paths to reflect your data locations and you will need to specify the number of image files you wish to simulate.
 
 ## Training and Inference
-
-
-
-
-
