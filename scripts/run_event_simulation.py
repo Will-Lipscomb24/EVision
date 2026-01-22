@@ -49,7 +49,7 @@ def run_simulation():
                 "--sigma_threshold", str(ev_params['sigma_threshold']),
                 "--cutoff_hz", str(ev_params['cutoff_hz']),
                 "--shot_noise_rate_hz", str(ev_params['shot_noise_rate_hz']),
-                "--set_frames", str(ev_params['set_frames']),
+                "--max_frames", str(ev_params['max_frames']),
                 "--pause_probability", str(ev_params['pause_probability'])
             ]
 

@@ -17,7 +17,7 @@ event_sim:
   sigma_threshold: 0
   cutoff_hz: 0
   shot_noise_rate_hz: 5
-  set_frames: 25
+  max_frames: 25
   pause_probability: 0
 training: 
   save_dir: "model_output"
