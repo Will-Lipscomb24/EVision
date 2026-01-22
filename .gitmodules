@@ -1,3 +1,4 @@
 [submodule "tools/openeb"]
 	path = tools/openeb
-	url = https://github.com/prophesee-ai/openeb
+	url = https://github.com/Will-Lipscomb24/openeb
+	branch = simulator_delta
