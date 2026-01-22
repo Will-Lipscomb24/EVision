@@ -38,7 +38,7 @@ EPOCHS = cfg['training']['epochs']
 LR = cfg['training']['learning_rate']
 LPIPS_NET = cfg['training']['lpips_net']
 WORKERS = cfg['training']['num_workers']
-SAVES = cfg['training']['num_saves']
+SAVES = cfg['training']['save_interval']
 LR_REDUCTION = cfg['training']['learning_rate_reduction']
 LR_STEP = cfg['training']['learning_rate_step_size']
 
@@ -71,7 +71,7 @@ def train():
         train_ds,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=4,
+        num_workers=WORKERS,
         pin_memory=True,
         persistent_workers=True,
         collate_fn=collate_fn_skip_bad

@@ -1,4 +1,7 @@
-
+data:
+  events_dir: '/mnt/mnt_pt1/coco4events/data/events'
+  input_dir: '/mnt/mnt_pt1/coco4events/data/input'
+  target_dir: '/mnt/mnt_pt1/coco4events/data/target'
 model:
   num_bins: 5
   height: 512
@@ -7,21 +10,15 @@ model:
   encoder_channels: 16
   rfb_blocks: 3
 event_sim:
-  cpu:
-    Cp: 0.05
-    Cn: 0.05
-    refractory_period: 1
-    sigma_threshold: 0
-    cutoff_hz: 0
-    shot_noise_rate_hz: 5
-    set_frames: 25
-    pause_probability: 0
-    leak_rate_hz: 0
-  gpu:
-    mean_mu: 0.1
-    std_mu: 0.05
-    batch_size: 8
-    voxel_bins: 5
+  Cp: 0.05
+  Cn: 0.05
+  refractory_period: 1
+  sigma_threshold: 0
+  cutoff_hz: 0
+  shot_noise_rate_hz: 5
+  set_frames: 25
+  pause_probability: 0
+  leak_rate_hz: 
 
 training: 
   save_dir: "model_output"
@@ -30,8 +27,8 @@ training:
   learning_rate: 0.0002
   learning_rate_reduction: 0.75
   learning_rate_step_size: 10
-  lpips_net: 'alex'
-  num_workers: 4
-  num_saves: 10
+  lpips_net: 'vgg'
+  num_workers: 8
+  save_interval: 10
   
 
