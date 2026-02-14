@@ -61,7 +61,7 @@ class DeformableConvLayer(nn.Module):
         
         # Perform the actual Deformable Convolution
         f_Edc = deform_conv2d(
-            f_F, offsets, self.weight, self.bias, 
+            f_E, offsets, self.weight, self.bias, 
             padding=self.padding, mask=mask
         )
         
@@ -80,7 +80,7 @@ class SpatialAttentionBlock(nn.Module):
         self.attention_gen = nn.Sequential(
             nn.Conv2d(2 * channels, channels, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(channels, channels, kernel_size=3, padding=1),
+            nn.Conv2d(channels, 1, kernel_size=3, padding=1),
             nn.Sigmoid()
         )
         

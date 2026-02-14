@@ -52,13 +52,13 @@ class SpatialAttention(nn.Module):
         out = self.sigmoid(self.conv(x_cat))
         return x * out
 
-class CABM(nn.Module):
+class CBAM(nn.Module):
     """
     Convolutional Block Attention Module (CBAM).
     Sequence: Channel Attention -> Spatial Attention
     """
     def __init__(self, channels, reduction_ratio=4, spatial_kernel=7):
-        super(CABM, self).__init__()
+        super(CBAM, self).__init__()
         self.ca = ChannelAttention(channels, reduction_ratio)
         self.sa = SpatialAttention(spatial_kernel)
 
@@ -67,14 +67,14 @@ class CABM(nn.Module):
         x = self.sa(x)
         return x
 
-class ResBlockCBAM(nn.Module):
+class ResBlock(nn.Module):
     """
     ResNet Block with Integrated CBAM.
     Structure: Conv1 -> BN -> ReLU -> Conv2 -> BN -> CABM -> (+ Shortcut) -> ReLU
     This matches the paper's design where attention refines features before residual addition.
     """
-    def __init__(self, channels, reduction_ratio=4):
-        super(ResBlockCBAM, self).__init__()
+    def __init__(self, channels):
+        super(ResBlock, self).__init__()
         
         # Standard ResNet Layers
         self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
@@ -84,8 +84,8 @@ class ResBlockCBAM(nn.Module):
         self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(channels)
         
-        # Attention Module inserted inside the block
-        self.cbam = CABM(channels, reduction_ratio=reduction_ratio)
+        # # Attention Module inserted inside the block
+        # self.cbam = CABM(channels, reduction_ratio=reduction_ratio)
 
     def forward(self, x):
         residual = x
@@ -97,8 +97,8 @@ class ResBlockCBAM(nn.Module):
         out = self.conv2(out)
         out = self.bn2(out)
         
-        # Apply Attention to the residual branch
-        out = self.cbam(out)
+        # # Apply Attention to the residual branch
+        # out = self.cbam(out)
         
         # Add the original input (Identity Shortcut)
         out = out + residual
@@ -106,7 +106,6 @@ class ResBlockCBAM(nn.Module):
         return out
 
 # --- Main Image Encoder ---
-
 class ImageEncoder(nn.Module):
     """
     Updated Image Encoder.
@@ -130,8 +129,9 @@ class ImageEncoder(nn.Module):
         
         # 2. Stacked ResBlocks with integrated CBAM
         # We replace the old isolated blocks with the fused ResBlockCBAM
-        self.rb1 = ResBlockCBAM(feature_channels, reduction_ratio=cbam_reduction)
-        self.rb2 = ResBlockCBAM(feature_channels, reduction_ratio=cbam_reduction)
+        self.rb1 = ResBlock(feature_channels)
+        self.rb2 = ResBlock(feature_channels)
+        self.cbam = CBAM(feature_channels)
 
     def forward(self, x):
         # Input x: Frame F (B, 1, H, W)
@@ -141,7 +141,8 @@ class ImageEncoder(nn.Module):
         
         # Pass through the attention-enhanced blocks
         x = self.rb1(f0_F)
-        f_F = self.rb2(x)
+        x = self.rb2(x)
+        f_F = self.cbam(x) + x
         
         # Output f_F: Refined Frame features (B, C, H, W)
         return f_F

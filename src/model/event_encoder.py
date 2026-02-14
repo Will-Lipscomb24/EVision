@@ -33,7 +33,7 @@ class ReceptiveFieldBlock(nn.Module):
         # is standard practice to manage parameter count
 
         # With an input channel of 16, to not choke the network we will keep the sae number of intermediate channels
-        inter_channels = in_channels // 2  
+        inter_channels = in_channels 
 
         # --- Branch 1: 1x1 Conv -> 3x3 Conv ---
         self.branch1 = nn.Sequential(
