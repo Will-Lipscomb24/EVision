@@ -62,7 +62,7 @@ class ReceptiveFieldBlock(nn.Module):
         self.conv_cat = BasicConv2d(inter_channels * 3, in_channels, kernel_size=1, padding=0)
         
         # Final ReLU after residual addition
-        self.final_relu = nn.ReLU(inplace=True)
+        self.final_relu = nn.ReLU(inplace=False)
 
     def forward(self, x):
         identity = x

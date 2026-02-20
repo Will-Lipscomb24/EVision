@@ -30,15 +30,3 @@ class custom_loss(nn.Module):
         loss = self.l1_weight * l1 + self.lpips_weight * lpips_val
         return loss
 
-    # def forward(self, prediction, target):
-    #     # 1. L1 Loss (Standard [0,1] scale)
-    #     l1 = self.l1_loss(prediction, target)
-
-    #     # 2. LPIPS Loss
-    #     # TorchMetrics handles numerical stability internally, so we don't need
-    #     # the manual noise injection or epsilon hacks anymore.
-    #     lpips_val = self.lpips_fn(prediction, target)
-
-    #     # 4. Combine
-    #     loss = self.l1_weight * l1 + self.lpips_weight * lpips_val
-    #     return loss

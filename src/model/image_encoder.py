@@ -2,33 +2,46 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class ChannelAttention(nn.Module):
     """
-    Channel Attention Module.
-    Key Changes:
-    1. Uses 1x1 Convolutions instead of Linear layers for spatial robustness.
-    2. Uses max() to prevent hidden_planes from becoming 0 or 1.
+    Channel Attention Module (CBAM-style, paper accurate)
+
+    - Uses 1x1 Conv as shared MLP (W0 and W1)
+    - No bias (matches formulation)
+    - ReLU after W0
+    - Shared weights for avg and max pooled descriptors
     """
+
     def __init__(self, in_planes, reduction_ratio=4):
         super(ChannelAttention, self).__init__()
-        # FIX: Ensure hidden_planes is at least 4 to preserve learning capacity
-        hidden_planes = max(4, in_planes // reduction_ratio)
-        
+
+        # Ensure valid hidden size
+        hidden_planes = max(1, in_planes // reduction_ratio)
+
+        # W0 and W1 (shared)
         self.shared_mlp = nn.Sequential(
-            nn.Conv2d(in_planes, hidden_planes, kernel_size=1, bias=True),
+            nn.Conv2d(in_planes, hidden_planes, kernel_size=1, bias=False),  # W0
             nn.ReLU(inplace=True),
-            nn.Conv2d(hidden_planes, in_planes, kernel_size=1, bias=True)
+            nn.Conv2d(hidden_planes, in_planes, kernel_size=1, bias=False)   # W1
         )
+
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        # Adaptive pooling handles any H, W automatically (Scale Invariant)
-        avg_out = self.shared_mlp(F.adaptive_avg_pool2d(x, 1))
-        max_out = self.shared_mlp(F.adaptive_max_pool2d(x, 1))
-        
-        # Combine and scale input
-        out = self.sigmoid(avg_out + max_out)
-        return x * out
+        # Global descriptors
+        avg_pool = F.adaptive_avg_pool2d(x, 1)
+        max_pool = F.adaptive_max_pool2d(x, 1)
+
+        # Shared MLP
+        avg_out = self.shared_mlp(avg_pool)
+        max_out = self.shared_mlp(max_pool)
+
+        # Element-wise sum + sigmoid
+        scale = self.sigmoid(avg_out + max_out)
+
+        # Reweight
+        return x * scale
 
 class SpatialAttention(nn.Module):
     """
@@ -67,6 +80,7 @@ class CBAM(nn.Module):
         x = self.sa(x)
         return x
 
+
 class ResBlock(nn.Module):
     """
     ResNet Block with Integrated CBAM.
@@ -79,7 +93,7 @@ class ResBlock(nn.Module):
         # Standard ResNet Layers
         self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(channels)
-        self.relu = nn.ReLU(inplace=True) 
+        self.relu = nn.ReLU(inplace=False) 
         
         self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(channels)
@@ -142,7 +156,7 @@ class ImageEncoder(nn.Module):
         # Pass through the attention-enhanced blocks
         x = self.rb1(f0_F)
         x = self.rb2(x)
-        f_F = self.cbam(x) + x
+        f_F = self.cbam(x)
         
         # Output f_F: Refined Frame features (B, C, H, W)
         return f_F

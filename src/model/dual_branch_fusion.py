@@ -26,6 +26,13 @@ class DeformableConvLayer(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(in_channels, 3 * kernel_size * kernel_size, kernel_size=3, padding=1)
         )
+
+        # Part 2: Refinement (generates f_EFdc)
+        # Structure: Concatenate -> Conv -> ReLU
+        self.dcb_refinement = nn.Sequential(
+            nn.Conv2d(2 * in_channels, in_channels, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True)
+        )
         
         # 3. Main Convolutional Weights and Bias
         # These are the actual filters applied after the sampling points are moved
@@ -60,12 +67,17 @@ class DeformableConvLayer(nn.Module):
         mask = torch.sigmoid(mask_logits) 
         
         # Perform the actual Deformable Convolution
-        f_Edc = deform_conv2d(
+        f_dc = deform_conv2d(
             f_E, offsets, self.weight, self.bias, 
             padding=self.padding, mask=mask
         )
+        f_dc = F.relu(f_dc, inplace=False)
+        combined_fdc = torch.cat([f_dc,f_F],dim=1)
+
+        out = self.dcb_refinement(combined_fdc)
+        return out
         
-        return F.relu(f_Edc, inplace=True)
+        
 
 class SpatialAttentionBlock(nn.Module):
     """
@@ -78,11 +90,11 @@ class SpatialAttentionBlock(nn.Module):
         # Attention Map (M_E) Generation Branch
         # Structure: Concatenate -> Conv -> ReLU -> Conv -> Sigmoid
         self.attention_gen = nn.Sequential(
-            nn.Conv2d(2 * channels, channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(channels, 1, kernel_size=3, padding=1),
-            nn.Sigmoid()
-        )
+        nn.Conv2d(2 * channels, channels, kernel_size=3, padding=1),
+        nn.Conv2d(channels, 1, kernel_size=3, padding=1),
+        nn.ReLU(inplace=True),   # ← ReLU after both convs
+        nn.Sigmoid()             # ← then Sigmoid
+)
         
         # Refinement Branch to generate f_EFsa
         # Structure: Concatenate -> Conv -> ReLU
@@ -120,21 +132,13 @@ class DualBranchFusion(nn.Module):
         # --- Bottom Branch: Deformable Convolutional Block (DCB) ---
         # Part 1: Deformable Convolution (generates f_Edc)
         self.dcb_layer = DeformableConvLayer(channels)
-        
-        # Part 2: Refinement (generates f_EFdc)
-        # Structure: Concatenate -> Conv -> ReLU
-        self.dcb_refinement = nn.Sequential(
+
+        self.dcb_fusion = nn.Sequential(
             nn.Conv2d(2 * channels, channels, kernel_size=3, padding=1),
             nn.ReLU(inplace=True)
         )
         
-        # --- Final Fusion Branch ---
-        # Fuses outputs from SAB and DCB.
-        # Structure: Concatenate -> Conv -> ReLU
-        self.final_fusion = nn.Sequential(
-            nn.Conv2d(2 * channels, channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True)
-        )
+        
 
     def forward(self, f_E, f_F):
         """
@@ -150,15 +154,11 @@ class DualBranchFusion(nn.Module):
         
         # 2. Forward pass through DCB branch
         # a. Apply Deformable Conv to align f_F to f_E -> f_Edc
-        f_Edc = self.dcb_layer(f_F, f_E)
-        
-        # b. Refine f_Edc by concatenating with f_F -> f_EFdc
-        combined_dcb = torch.cat([f_Edc, f_F], dim=1)
-        f_EFdc = self.dcb_refinement(combined_dcb)
+        f_Edc = self.dcb_layer(f_E, f_F)
         
         # 3. Final Fusion
         # Concatenate outputs of both branches and refine -> f_EF
-        combined_final = torch.cat([f_EFsa, f_EFdc], dim=1)
+        combined_final = torch.cat([f_EFsa, f_Edc], dim=1)
         f_EF = self.final_fusion(combined_final)
         
         return f_EF
