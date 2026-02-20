@@ -133,7 +133,7 @@ class DualBranchFusion(nn.Module):
         # Part 1: Deformable Convolution (generates f_Edc)
         self.dcb_layer = DeformableConvLayer(channels)
 
-        self.dcb_fusion = nn.Sequential(
+        self.final_fusion= nn.Sequential(
             nn.Conv2d(2 * channels, channels, kernel_size=3, padding=1),
             nn.ReLU(inplace=True)
         )
