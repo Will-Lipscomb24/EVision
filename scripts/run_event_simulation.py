@@ -5,16 +5,16 @@ import yaml
 
 # --- Configuration ---
 # You can use absolute paths or relative paths
-BASE_DIR = "./data/data_formatted"
+BASE_DIR = "/mnt/20TB/evision/"
 INPUT_DIR = os.path.join(BASE_DIR, "target")
-EVENTS_DIR = os.path.join(BASE_DIR, "events")
+EVENTS_DIR = os.path.join(BASE_DIR, "events_offset")
 
 
 # Path to the simulator script
 # Ensure this path is exactly correct on your system
-SIMULATOR_SCRIPT = "/home/will/projects/EVision/tools/openeb/sdk/modules/core_ml/python/samples/viz_video_to_event_simulator/viz_video_to_event_simulator.py"
+SIMULATOR_SCRIPT = "/home/wgl294/projects/EVision/tools/openeb/sdk/modules/core_ml/python/samples/viz_video_to_event_simulator/viz_video_to_event_simulator.py"
 
-with open('configs/config.yaml','r') as f:
+with open('configs/val_config.yaml','r') as f:
     config = yaml.safe_load(f)
 ev_params = config["event_sim"]
 
@@ -25,7 +25,7 @@ def run_simulation():
     print(f"Output directory ready: {EVENTS_DIR}")
 
     # 2. Loop through IDs 0001 to 1000
-    for i in range(1, 1001):
+    for i in range(1, 2500):
         # Format ID with leading zeros (e.g., 1 -> "0001")
         file_id = f"{i:04d}"
         print(file_id)

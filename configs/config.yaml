@@ -1,33 +1,33 @@
 
 data:
-  events_dir: "data/data_formatted/events"
-  input_dir: "data/data_formatted/input"
-  target_dir: "data/data_formatted/target"
+  events_dir: "/mnt/20TB/evision/events_offset"
+  input_dir: "/mnt/20TB/evision/input"
+  target_dir: "/mnt/20TB/evision/target"
 model:
   num_bins: 5
-  height: 256 
-  width: 256
+  height: 512
+  width: 512
   base_channels: 64
   encoder_channels: 16
   rfb_blocks: 3
 event_sim:
-  Cp: 0.05
-  Cn: 0.05
-  refractory_period: 1
-  sigma_threshold: 0
+  Cp: 0.1
+  Cn: 0.1
+  refractory_period: 10
+  sigma_threshold: 0.03
   cutoff_hz: 0
-  shot_noise_rate_hz: 5
-  max_frames: 25
+  shot_noise_rate_hz: 2
+  max_frames: 20
   pause_probability: 0
-training: 
+training:
   save_dir: "model_output"
   epochs: 100
   batch_size: 16
   learning_rate: 0.0002
   learning_rate_reduction: 0.75
-  learning_rate_step_size: 10
-  lpips_net: 'alex'
-  num_workers: 4
-  num_saves: 10
-  
+  learning_rate_step_size: 20
+  lpips_net: 'vgg'
+  num_workers: 16
+  num_saves: 5
+
 

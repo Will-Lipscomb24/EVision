@@ -3,20 +3,20 @@ import torch.nn as nn
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 
 class custom_loss(nn.Module):
-    def __init__(self, l1_weight=1.0, lpips_weight=1.0, net='vgg', device='cuda'):
+    def __init__(self, l2_weight=1.0, lpips_weight=1.0, net='vgg', device='cuda'):
         super(custom_loss, self).__init__()
-        self.l1_loss = nn.L1Loss()
+        self.l2_loss = nn.MSELoss()
         
         # TorchMetrics Implementation
         # net_type: maps to 'vgg', 'alex', or 'squeeze'
         # normalize=False: tells it we are providing inputs in [-1, 1] range (which we do below)
         self.lpips_fn = LearnedPerceptualImagePatchSimilarity(net_type=net, normalize=True).to(device)
         
-        self.l1_weight = l1_weight
+        self.l2_weight = l2_weight
         self.lpips_weight = lpips_weight
 
     def forward(self, prediction, target):
-        l1 = self.l1_loss(prediction, target)
+        l2 = self.l2_loss(prediction, target)
 
         # 1. Create 3-channel versions for LPIPS
         # We assume input is (N, 1, H, W)
@@ -27,6 +27,5 @@ class custom_loss(nn.Module):
         # (normalize=True handles the [0,1] -> [-1,1] scaling)
         lpips_val = self.lpips_fn(pred_3c, target_3c)
 
-        loss = self.l1_weight * l1 + self.lpips_weight * lpips_val
+        loss = self.l2_weight * l2 + self.lpips_weight * lpips_val
         return loss
-

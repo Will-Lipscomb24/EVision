@@ -54,9 +54,9 @@ def train():
     # Assuming you have lists of file paths (you can use glob to get these automatically)
     # For now, let's assume they are passed or hardcoded
 
-    event_files = sorted(glob.glob(os.path.join(EVENTS_DIR, "*.dat")))
-    input_files = sorted(glob.glob(os.path.join(INPUT_DIR, "*.jpg")))
-    target_files = sorted(glob.glob(os.path.join(TARGET_DIR, "*.jpg")))
+    event_files = sorted(glob.glob(os.path.join(EVENTS_DIR, "*.dat")))[:7500]
+    input_files = sorted(glob.glob(os.path.join(INPUT_DIR, "*.jpg")))[:7500]
+    target_files = sorted(glob.glob(os.path.join(TARGET_DIR, "*.jpg")))[:7500]
 
     train_ds = EnhancementDataset(
         event_paths=event_files,
@@ -71,7 +71,7 @@ def train():
         train_ds,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=4,
+        num_workers=16,
         pin_memory=True,
         persistent_workers=True,
         collate_fn=collate_fn_skip_bad
@@ -84,9 +84,11 @@ def train():
         enc_channels=ENCODER_CHANNELS,
         num_rfb_blocks=RFB_BLOCKS
     ).to(device)
-
+    if torch.cuda.device_count() > 8:
+        print(f"Using {torch.cuda.device_count()} GPUs")
+        model = nn.DataParallel(model)
     # L1 Loss is standard for image reconstruction (creates sharper edges than MSE)
-    criterion = custom_loss(net=LPIPS_NET, l1_weight=1.0, lpips_weight=1.0, device=device).to(device)
+    criterion = custom_loss(net=LPIPS_NET, l2_weight=1.0, lpips_weight=1.0, device=device).to(device)
     criterion.lpips_fn.eval()
 
     optimizer = optim.Adam(model.parameters(), lr=float(LR))
@@ -117,8 +119,7 @@ def train():
                 # B. Forward Pass
                 optimizer.zero_grad()
                 output = model(events, input_frame)
-
-                # C. Compute Loss
+                                # C. Compute Loss
                 loss = criterion(output, target)
 
                 # D. Backward Pass
@@ -142,11 +143,11 @@ def train():
         if (epoch + 1) % save_int == 0:
             save_path = os.path.join(
                 SAVE_DIR, 
-                f"checkpoint_epoch_{epoch+1}.pth"
+                f"checkpoint_epoch_{epoch+1}_2_25.pth"
             )
             torch.save({
                 'epoch': epoch,
-                'model_state_dict': model.state_dict(),
+                'model_state_dict': model.module.state_dict() if isinstance(model,nn.DataParallel) else model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'loss': epoch_loss,
             }, save_path)
