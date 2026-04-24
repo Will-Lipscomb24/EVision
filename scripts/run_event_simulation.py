@@ -4,19 +4,19 @@ import yaml
 
 
 # --- Configuration ---
-# You can use absolute paths or relative paths
-BASE_DIR = "./data/data_formatted"
-INPUT_DIR = os.path.join(BASE_DIR, "target")
-EVENTS_DIR = os.path.join(BASE_DIR, "events")
+with open('configs/config.yaml','r') as f:
+    config = yaml.safe_load(f)
+ev_params = config["event_sim"]
 
+
+TARGET_DIR = config['data']['target_dir']
+EVENTS_DIR = config['data']['events_dir']
 
 # Path to the simulator script
 # Ensure this path is exactly correct on your system
 SIMULATOR_SCRIPT = "/home/will/projects/EVision/tools/openeb/sdk/modules/core_ml/python/samples/viz_video_to_event_simulator/viz_video_to_event_simulator.py"
 
-with open('configs/config.yaml','r') as f:
-    config = yaml.safe_load(f)
-ev_params = config["event_sim"]
+
 
 
 def run_simulation():
@@ -25,11 +25,11 @@ def run_simulation():
     print(f"Output directory ready: {EVENTS_DIR}")
 
     # 2. Loop through IDs 0001 to 1000
-    for i in range(1, 1001):
+    for i in range(1, 5001):
         # Format ID with leading zeros (e.g., 1 -> "0001")
         file_id = f"{i:04d}"
         print(file_id)
-        input_img = os.path.join(INPUT_DIR, f"{file_id}.jpg")
+        input_img = os.path.join(TARGET_DIR, f"{file_id}.jpg")
         output_dat = os.path.join(EVENTS_DIR, f"{file_id}.dat")
 
         # 3. Check if input image exists

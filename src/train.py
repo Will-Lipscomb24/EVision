@@ -47,6 +47,7 @@ def train():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Running on: {device}")
 
+
     # Create directory for saving models
     os.makedirs(SAVE_DIR, exist_ok=True)
 

@@ -140,26 +140,21 @@ class DualBranchFusion(nn.Module):
         
         
 
-    def forward(self, f_E, f_F):
-        """
-        Args:
-            f_E: Event features (B, C, H, W)
-            f_F: Frame features (B, C, H, W)
-        Returns:
-            f_EF: Fused features (B, C, H, W)
-        """
-        # 1. Forward pass through SAB branch
-        # Output: f_EFsa
+    def forward(self, f_E, f_F, return_features=False):
+
         f_EFsa = self.sab(f_E, f_F)
-        
-        # 2. Forward pass through DCB branch
-        # a. Apply Deformable Conv to align f_F to f_E -> f_Edc
-        f_Edc = self.dcb_layer(f_E, f_F)
-        
-        # 3. Final Fusion
-        # Concatenate outputs of both branches and refine -> f_EF
+        f_Edc  = self.dcb_layer(f_E, f_F)
+
         combined_final = torch.cat([f_EFsa, f_Edc], dim=1)
         f_EF = self.final_fusion(combined_final)
-        
+
+        if return_features:
+            return {
+                "sab_out": f_EFsa,
+                "dcb_out": f_Edc,
+                "combined_final": combined_final,  
+                "fused": f_EF
+            }
+
         return f_EF
 

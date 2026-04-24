@@ -4,8 +4,8 @@ import random
 import numpy as np
 from scipy.ndimage import gaussian_filter
 
-img_path = "/home/will/projects/EVision/data/data_formatted2/target"
-output_dir = "/home/will/projects/EVision/data/data_formatted2/input"
+img_path = "/home/will/projects/EVision/data/validation/target"
+output_dir = "/home/will/projects/EVision/data/validation/input"
 
 
 def make_directional_bloom(h, w, source_corner="top-right", intensity=2, spread=0.1, seed=None):
@@ -148,32 +148,26 @@ def add_shadow_glow(image, shadow_map, glow_strength=0.25, locality=6.0):
     return np.clip(darkened, 0, 255).astype(np.uint8)
 
 # ── Usage ──────────────────────────────────────────────────────────────────────
-img_path = '/home/will/projects/EVision/data/data_formatted/target/0230.jpg'
-image = cv2.imread(img_path)
-h, w = image.shape[:2]
+#img_path = '/home/will/projects/EVision/data/data_formatted/target/0230.jpg'
+# image = cv2.imread(img_path)
+# h, w = image.shape[:2]
 
-bloom_map = make_directional_bloom(h, w, source_corner="center", intensity=3, spread=0.6, seed=42)
-result = apply_bloom_exposure(image, bloom_map)
-resultb = add_bloom_glow(result, bloom_map, glow_strength=0.3,locality=2)
+# bloom_map = make_directional_bloom(h, w, source_corner="center", intensity=3, spread=0.6, seed=42)
+# result = apply_bloom_exposure(image, bloom_map)
+# resultb = add_bloom_glow(result, bloom_map, glow_strength=0.3,locality=2)
 
-# Underexposure from bottom-left
-shadow_map = make_directional_shadow(h, w, source_corner="right", intensity=0.15, spread=0.6, seed=42)
-result = apply_bloom_exposure(image, shadow_map)   # reuse the same apply function
-results = add_shadow_glow(result, shadow_map, glow_strength=.3, locality=2)
+# # Underexposure from bottom-left
+# shadow_map = make_directional_shadow(h, w, source_corner="right", intensity=0.15, spread=0.6, seed=42)
+# result = apply_bloom_exposure(image, shadow_map)   # reuse the same apply function
+# results = add_shadow_glow(result, shadow_map, glow_strength=.3, locality=2)
 
+# source_direction = ["top-right", "top-left", "bottom-right", "bottom-left", "top", "bottom", "left", "right", "center"]
+# locality = random.uniform(2, 7)
+# intensity_bloom = random.uniform(3, 5)
 
-cv2.imshow('Directional Bloom', resultb)
-cv2.imshow('Directional Shadow', results)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-
-source_direction = ["top-right", "top-left", "bottom-right", "bottom-left", "top", "bottom", "left", "right", "center"]
-locality = random.uniform(2, 7)
-intensity_bloom = random.uniform(3, 5)
-
-intensity_shadow = random.uniform(0.1, 0.15)
-spread_bloom = random.uniform(0.4, 0.6)
-spread_shadow = random.uniform(0.6, 0.8)
+# intensity_shadow = random.uniform(0.1, 0.15)
+# spread_bloom = random.uniform(0.4, 0.6)
+# spread_shadow = random.uniform(0.6, 0.8)
 
 for file in os.listdir(img_path):
 
@@ -192,27 +186,34 @@ for file in os.listdir(img_path):
 
     # Setting random parameters for image
     source_direction = random.choice(["top-right", "top-left", "bottom-right", "bottom-left", "top", "bottom", "left", "right", "center"])
-    function_choice = random.choice(["bloom", "shadow"])
+    # function_choice = random.choice(["bloom", "shadow"])
+    function_choice = "bloom"
     locality = random.uniform(2, 7)
-    intensity_bloom = random.uniform(3, 5)
-    intensity_shadow = random.uniform(0.1, 0.15)
+    if img.mean() < 100:
+        intensity_bloom = random.uniform(3,4)
+    elif img.mean() >= 100 and img.mean() < 175:
+        intensity_bloom = random.uniform(2,3)
+    else:
+        intensity_bloom = random.uniform(1, 2)
+    intensity_shadow = random.uniform(.1, 0.15)
     spread_bloom = random.uniform(0.4, 0.6)
     spread_shadow = random.uniform(0.6, 0.8)
 
+    h, w = img.shape[:2]
 
     if function_choice == "bloom":
         bloom_map = make_directional_bloom(h, w, source_corner=source_direction, intensity=intensity_bloom, spread=spread_bloom, seed=42)
-        result = apply_bloom_exposure(image, bloom_map)
+        result = apply_bloom_exposure(img, bloom_map)
         result_bloom = add_bloom_glow(result, bloom_map, glow_strength=0.3,locality=locality)
     elif function_choice == "shadow":   
         shadow_map = make_directional_shadow(h, w, source_corner="right", intensity=intensity_shadow, spread=spread_shadow, seed=42)
-        result = apply_bloom_exposure(image, shadow_map)   # reuse the same apply function
+        result = apply_bloom_exposure(img, shadow_map)   # reuse the same apply function
         result_shadow = add_shadow_glow(result, shadow_map, glow_strength=.3, locality=locality)
 
-    # Save with new meaningful names
-    shadow_filename = f"{name}_bloom_{source_direction}_locality{locality:.2f}.jpg"
-    bloom_filename = f"{name}_shadow_intensity{intensity_shadow:.2f}_spread{spread_shadow:.2f}.jpg"
+    # # Save with new meaningful names
+    # shadow_filename = f"{name}_bloom_{source_direction}_locality{locality:.2f}.jpg"
+    bloom_filename = f"{file}.jpg"
 
-    cv2.imwrite(os.path.join(output_dir, shadow_filename), result_bloom)
-    cv2.imwrite(os.path.join(output_dir, bloom_filename), result_shadow)
+    cv2.imwrite(os.path.join(output_dir, file), result_bloom)
+    # cv2.imwrite(os.path.join(output_dir, bloom_filename), result_shadow)
    

@@ -131,3 +131,119 @@ def resize_images(input_folder_path, output_path, new_height, new_width):
         
         cv2.imwrite(save_path, resized_img)
 
+def convert_images_to_grayscale(input_folder_path, output_path):
+    # Ensure the output directory exists
+    os.makedirs(output_path, exist_ok=True)
+    
+    # Grab all .jpg files (you can add .png or others if needed)
+    files = glob.glob(os.path.join(input_folder_path, "*.jpg")) 
+    
+    print(f"Found {len(files)} images to convert to grayscale.")
+
+    for file in files:
+        img = cv2.imread(file)
+        
+        if img is None: 
+            print(f"Skipping: {file} (could not read)")
+            continue
+            
+        # Convert BGR image to Gray
+        gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+        # Get original filename and save
+        filename = os.path.basename(file)
+        save_path = os.path.join(output_path, filename)
+        
+        cv2.imwrite(save_path, gray_img)
+        
+    print("Processing complete.")
+
+def rename_images(input_folder_path, output_folder_path, start_index=1):
+    os.makedirs(output_folder_path, exist_ok=True)
+    
+    files = glob.glob(os.path.join(input_folder_path, "*.jpg")) 
+    files.sort()  # Ensure consistent ordering
+
+    print(f"Found {len(files)} images to rename.")
+
+    for i, file in enumerate(files):
+        img = cv2.imread(file)
+        if img is None: 
+            continue
+            
+        filename = f"{start_index + i:05d}.jpg"
+        save_path = os.path.join(output_folder_path, filename)
+        
+        cv2.imwrite(save_path, img)
+
+
+import numpy as np
+import os
+import glob
+
+def convert_npy_to_dat(input_path, output_path, width=1280, height=720):
+    """
+    Converts structured numpy events (x, y, p, t) into a Metavision .dat file.
+    Fixes KeyError 65/251 by adding the correct Type 0 header and bit-packing.
+    """
+    # 1. Load your numpy data
+    events = np.load(input_path)
+    
+    if len(events) == 0:
+        print(f"Skipping empty file: {input_path}")
+        return
+
+    print(f"Processing {len(events):,} events: {os.path.basename(input_path)}")
+
+    with open(output_path, 'wb') as f:
+        # 2. Write the mandatory Metavision Header
+        # 'Type 0' tells the reader: "This is standard CD data (x, y, p, t)"
+        header = (
+            f"% Data file containing CD events\n"
+            f"% Version 2.0\n"
+            f"% width {width}\n"
+            f"% height {height}\n"
+            f"% Type 0\n"
+        ).encode('ascii')
+        f.write(header)
+
+        # 3. Perform Bit-Packing
+        # Metavision Type 0 expects 8 bytes per event:
+        # [4 bytes: uint32 timestamp] [4 bytes: packed x, y, p]
+        
+        # Create a specialized structured array for the output
+        dat_dtype = np.dtype([('t', '<u4'), ('xyp', '<u4')])
+        dat_events = np.empty(len(events), dtype=dat_dtype)
+
+        # Timestamps (t) - Cast to 32-bit unsigned
+        dat_events['t'] = events['t'].astype(np.uint32)
+
+        # Pack x, y, p into the second 32-bit word
+        # x: bits 0-13 (14 bits)
+        # y: bits 14-26 (13 bits)
+        # p: bit 27 (1 bit)
+        x = events['x'].astype(np.uint32) & 0x3FFF
+        y = (events['y'].astype(np.uint32) & 0x1FFF) << 14
+        p = (events['p'].astype(np.uint32) & 0x01) << 27
+        
+        dat_events['xyp'] = x | y | p
+
+        # 4. Save raw bytes
+        dat_events.tofile(f)
+    
+    print(f"Successfully created: {output_path}")
+
+# if __name__ == "__main__":
+#     # Path where your ROS node saved the .npy files
+#     input_dir = "/tmp/event_captures" 
+#     # Path where you want the .dat files to go
+#     output_dir = "/tmp/event_captures/metavision_dat"
+    
+#     os.makedirs(output_dir, exist_ok=True)
+    
+#     # Process all .npy files in the folder
+#     for npy_file in glob.glob(os.path.join(input_dir, "*.npy")):
+#         dat_name = os.path.basename(npy_file).replace(".npy", ".dat")
+#         convert_npy_to_dat(npy_file, os.path.join(output_dir, dat_name))
+
+

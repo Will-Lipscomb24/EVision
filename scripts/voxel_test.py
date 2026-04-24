@@ -8,8 +8,8 @@ from metavision_core_ml.preprocessing.event_to_tensor_torch import event_cd_to_t
 from src.utils import events_to_voxel_grid, vis_voxel_bin
 
 # 1. Setup Paths
-single_event_path = '/home/will/Downloads/00001.dat'
-single_image_path = '/home/will/projects/EVision/data/data_formatted/target/0001.jpg'
+single_event_path = '/home/will/projects/EVision/data/validation/events/0004.dat'
+single_image_path = '/home/will/projects/EVision/data/validation/target/0004.jpg'
 
 # 2. Get Dimensions
 img = cv2.imread(single_image_path)
@@ -31,7 +31,7 @@ voxel_grid = events_to_voxel_grid(events, 5, 512, 512)
 
 # 6. Visualize
 # vis_voxel_bin usually expects a tensor, make sure to show it using cv2.imshow
-img_preview = vis_voxel_bin(voxel_grid, 2) # Get bin 0
+img_preview = vis_voxel_bin(voxel_grid, 0) # Get bin 0
 cv2.imshow("Voxel Bin 0", img_preview)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
