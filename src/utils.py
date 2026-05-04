@@ -8,6 +8,7 @@ import cv2
 import os 
 import glob
 import random
+from pathlib import Path
 
 
 def events_to_voxel_grid(events, num_bins, width, height):
@@ -158,28 +159,40 @@ def convert_images_to_grayscale(input_folder_path, output_path):
         
     print("Processing complete.")
 
-def rename_images(input_folder_path, output_folder_path, start_index=1):
-    os.makedirs(output_folder_path, exist_ok=True)
+def random_select_and_rename(input_folder, output_folder, target_count=500, start_index=1):
+    os.makedirs(output_folder, exist_ok=True)
     
-    files = glob.glob(os.path.join(input_folder_path, "*.jpg")) 
-    files.sort()  # Ensure consistent ordering
+    files = glob.glob(os.path.join(input_folder, "*.jpg"))
+    total_images = len(files)
+    
+    if total_images < target_count:
+        target_count = total_images
 
-    print(f"Found {len(files)} images to rename.")
+    selected_files = random.sample(files, target_count)
 
-    for i, file in enumerate(files):
-        img = cv2.imread(file)
-        if img is None: 
+    # --- ADAPTABLE PADDING LOGIC ---
+    # Calculate how many digits the largest number will have
+    # e.g., 500 -> 3 digits, 10000 -> 5 digits
+    padding_width = len(str(start_index + target_count - 1))
+    # -------------------------------
+
+    print(f"Selecting {target_count} images with {padding_width}-digit padding...")
+
+    for i, file_path in enumerate(selected_files):
+        img = cv2.imread(file_path)
+        if img is None:
             continue
             
-        filename = f"{start_index + i:05d}.jpg"
-        save_path = os.path.join(output_folder_path, filename)
+        # The syntax f"{value:0{width}d}" uses nested variables
+        # It says: "format 'value' with '0' padding of 'width' length"
+        current_id = start_index + i
+        filename = f"{current_id:0{padding_width}d}.jpg"
         
+        save_path = os.path.join(output_folder, filename)
         cv2.imwrite(save_path, img)
 
+    print(f"Done! Filenames range from {start_index:0{padding_width}d} to {start_index + target_count - 1:0{padding_width}d}")
 
-import numpy as np
-import os
-import glob
 
 def convert_npy_to_dat(input_path, output_path, width=1280, height=720):
     """
@@ -233,17 +246,17 @@ def convert_npy_to_dat(input_path, output_path, width=1280, height=720):
     
     print(f"Successfully created: {output_path}")
 
-# if __name__ == "__main__":
-#     # Path where your ROS node saved the .npy files
-#     input_dir = "/tmp/event_captures" 
-#     # Path where you want the .dat files to go
-#     output_dir = "/tmp/event_captures/metavision_dat"
+def find_evision_root():
+    # Get the absolute path of the current file
+    current_path = Path(__file__).resolve()
     
-#     os.makedirs(output_dir, exist_ok=True)
-    
-#     # Process all .npy files in the folder
-#     for npy_file in glob.glob(os.path.join(input_dir, "*.npy")):
-#         dat_name = os.path.basename(npy_file).replace(".npy", ".dat")
-#         convert_npy_to_dat(npy_file, os.path.join(output_dir, dat_name))
+    # Iterate through all parent directories
+    for parent in current_path.parents:
+        # Check for a unique marker of the EVision root
+        if (parent / ".git").exists():
+            return parent
+            
+    # Fallback to current directory if not found
+    return current_path.parent
 
 

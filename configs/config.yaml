@@ -1,9 +1,6 @@
 
-data:
-  events_dir: "data/validation/events"
-  input_dir: "data/validation/input"
-  target_dir: "data/validation/target"
 model:
+  desired_images: 1000
   num_bins: 5
   height: 512
   width: 512
@@ -23,13 +20,15 @@ event_sim:
   translational_offset: 0.35
   max_optical_flow: 2.0
   max_interp_frames: 20
+  display: False
 training: 
-  save_dir: "model_output"
+  type: "training"
+  save_dir: "saved_model_output"
   epochs: 100
   batch_size: 16
   learning_rate: 0.0002
   learning_rate_reduction: 0.75
-  learning_rate_step_size: 10
+  learning_rate_epochs: 10
   lpips_net: 'vgg'
   num_workers: 2
   num_saves: 10

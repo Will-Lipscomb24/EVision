@@ -1,65 +1,93 @@
-# EVision: Image Reconstruction Using Event Images
+# EVision: Image Reconstruction Using Events and Images
+This repo serves as a computer vision pipeline where you can generate synthetic event data, train, and inference to reconstruct poorly exposed gray-scale images using the event data.
+
+## Contents
+* [Installation](#installation)
+* [Data Generation](#data-generation)
+* [Training](#training)
+* [Testing & Analysis](#testing&analysis)
 
 
-You will need to install necessary dependencies as well as the open-source repository provided by Prophesee that provides necessary classes.
-We will walk through the following process:
-* Package and OpenEB installation
-* Dataset Generation and Organization
-* Training and Inference
-
-
-## Package and OpenEB Installation
-The full instructions for installing OpenEB can be found at https://github.com/prophesee-ai/openeb , but I will walk through a quick install:
-
-
-* Clone the OpenEB repository
-```bash
-git clone https://github.com/prophesee-ai/openeb.git --branch 5.2.0
+## Installation
+[OpenEB](https://github.com/Will-Lipscomb24/openeb/tree/new_sim) is an open-source toolkit that can be used to generate synthetic event data, interface with real event cameras, and perform computer vision tasks using event streams. The link provided is a forked version that allows the user to specify additional parameters. 
+To clone EVision and OpenEB together, run:
 ```
-* Install OS dependencies:
-```bash
-sudo apt update
-sudo apt -y install apt-utils build-essential software-properties-common wget unzip curl git cmake
-sudo apt -y install libopencv-dev libboost-all-dev libusb-1.0-0-dev libprotobuf-dev protobuf-compiler
-sudo apt -y install libhdf5-dev hdf5-tools libglew-dev libglfw3-dev libcanberra-gtk-module ffmpeg
+git clone --recursive https://github.com/Will-Lipscomb24/EVision
 ```
+Visit the OpenEB link to install the additional required dependencies and compile the source code. After you clone you will need to navigate to the `openeb` directory before compiling.
+It is recommended to use a dependency manager such as conda or venv to manage your packages, but it is not strictly necessary.
 
-* We will create a Conda environment to manage the dependencies:
-```bash
-conda create --name evision python=3.11
-conda activate evision
+### Dependencies for Using IDS Event Camera
+If you want to use an IDS event camera, the plugin will need to be installed and added to the path. There exists different camera plugins depending on the manufacturer of event camera that you are using. Focusing specifically on the IDS event camera, you will need to navigate to the [software](https://www.ids-imaging.us/download-details/1011378.html?os=linux&version=&bus=64&floatcalc=#) webpage and download the correct plugin depending on the version of Ubuntu that you are using. Follow the install instructions provided in the download and be sure to setup the udev rules as instructed. As instructed in the **Compilation** section of the openEB repository, in order for openEB to find the plugin, export the installed plugin path in your `~/.bashrc` directory:
 ```
-
-```bash 
-pip install -r OPENEB_SRC_DIR/utils/python/requirements_openeb.txt 
-pip install -r OPENEB_SRC_DIR/utils/python/requirements_pytorch_cuda.txt
+export MV_HAL_PLUGIN_PATH=<plugin_path>
 ```
+The plugin path after installing the IDS plugin should resemble `/opt/ueye-evs/lib/ids/ueye_evs/hal/plugins`. Note that the setup of the IDS event camera plugin isn't necessary for the generation on synthetic events.
 
-* Now we will compile. 
-	1. In your openeb dir run: `mkdir build & cd build`
-	2. Generate cmake `cmake .. -DPython3_EXECUTABLE=$(which python) -DCOMPILE_PYTHON3=ON`
-	3. Compile: `make -j$(nproc)`
 
-* We will use OpenEB directly from the build folder. This will allow for the source code to be modified if necessary. To do so we need to add a source line to `~/.bashrc`.
-```bash
-source <path to build folder>/utils/scripts/setup_env.sh
+## Data Generation
+The dataset that was used to generate synthetic events was a 15k subset of the 2017 the open-source **MSCOCO** dataset. To download it run:
 ```
+wget http://images.cocodataset.org/zips/train2017.zip
+unzip train2017.zip
+```
+and unzip it. 
+There are a few steps that need to take place to get the data in the proper form for training:
 
-* Now the environment is setup so that OpenEB modules can be imported into scripts.
-# Dataset Generation and Organization
-The dataset used for the training & validation pipelines is the MSCOCO 2017 train images(118K/18GB) and 2017 val images(5K/1GB).
-Only a subset of the full training dataset is used (~10K).
-* Download the dataset that you wish to train on
+* [Renaming](#renaming)
+* [Scaling](#scaling)
+* [Converting to Gray-scale](#converting-to-gray-scale)
+* [Poorly Exposing](#poorly-exposing)
 
-### Data Modifications:
-There are 3 ways in which we will modify the original data:
-1. Reshaping all of the training imagery to be the same size.
-2. Changing the exposure of the ground truth images to generate the models input image.
-3. Using the ground truth imagery to generate small event-camera clips using the installed Metavision OpenEB tools.
+All of these functions exist in `EVision/src/utils`. The config file has parameters under `model` that need to be set by the user. 
 
-## Dataset Generation
-The scripts for reshaping and changing the exposure are located in
-EVision/src/utils. Once this is complete, run the script **run_event_simulation.py** located in EVision/scripts. 
-* Note: You will need to change the paths to reflect your data locations and you will need to specify the number of image files you wish to simulate.
+| Parameter | Description |
+| :--- | :--- |
+| `model: desired_images` | Subset of images from the downloaded MSCOCO dataset that will be trained on |
+| `model: height` | Image height used for training and the reconstruction |
+| `model: width` | Image width used for training and the reconstruction |
 
-## Training and Inference
+By running `generate_image_dataset.py` the necessary functions will be ran and a new directory called /**data** should exist housing the /**target** and /**input** datasets with the specified configuration.
+
+Once the image data is created, the synthetic events can be generated. The following parameters can be set according to the use case of the event camera.
+
+| Parameter | Description |
+| :--- | :--- |
+| `event_sim: Cp` | Log brightness increase constrast threshold for an event trigger|
+| `event_sim: Cn` | Log brightness decrease constrast threshold for an event trigger|
+| `event_sim: refractory_period` | The minimum time period (us) that a pixel must wait before another event can be triggered |
+| `event_sim: sigma_threshold` | Standard deviation of constrast threshold across pixels|
+| `event_sim: cutoff_hz` | Frequency of low-pass filter applied to the log intensity changes |
+| `event_sim: shot_noise_rate_hz` | Rate of false positive events being triggered simulating sensor noise |
+| `event_sim: max_frames` | The number of frames the simulator will generate |
+| `event_sim: pause_probability` | The probability that the simulator pauses/skips a period of time |
+| `event_sim: rotational_offset` | Addition of constant orientation change in the simulation |
+| `event_sim: translational_offset` | Addition of constant translational offset in the simulation |
+| `event_sim: max_optical_flow` | Constrains how many pixels a feature can move between frames (lower means smoother sampling)|
+| `event_sim: max_interp_frames` | Max number of intermediate frames between keyframes |
+| `display` | Boolean to display the raw image and generated events |
+
+To begin the event data generation simply run the ` run_event_simulation.py` script. The event simulation process may take a day or two to complete primarily depending on the number of images and the number of frames being generated.
+
+
+## Training
+Once the data set is fully generated, i.e. the target images, input images, and event .dat files are created, then the model training can start. The following parameters can be set prior to training:
+| Parameter | Description |
+| :--- | :--- |
+| `training: type`     | Specify if the data is being used for training or for validation |
+| `training: save_dir` | The output directory for the trained models|
+| `training: epochs` | The number of passes of the entire dataset through the network|
+| `training: batch_size` | The number of examples processed at once before the weights get updated|
+| `training: num_workers` | The number of CPU subprocesses to run|
+| `training: learning_rate` | The step_size the model takes when updating weights|
+| `training: learning_rate_reduction` | The factor to reduce the step size after **learning_rate_epochs** number of epochs|
+| `training: learning_rate_epochs` | The number of epochs before the step size gets reduced by a factor of **learning_rate_reduction**|
+| `training: lpips_net` | The pre-trained network used to compute the loss [vgg or alex]  |
+| `training: num_saves` | The number of model saves throughout the training process|
+
+Once the training parameters are set, the file `train.py` can be ran. This file is located in the **/src** directory.
+
+## Testing & Analysis
+To test a train model, you need to download a subset of images that you want to test the model from the MSCOCO website. Then in the configs change `training:type` from `training` to `testing`. Re-run the `generate_image_dataset.py` file and finally run `testing.py` located again in the **/src** directory. This will create a **/results** directory with all of the processed images. 
+
+

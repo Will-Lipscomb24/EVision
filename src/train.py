@@ -5,25 +5,25 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from src.custom_loss import custom_loss
+from src.data_loaders import EnhancementDataset
+from src.model.assembled import EventImageFusionNet
 from src.data_loaders import collate_fn_skip_bad
+from src.utils import find_evision_root
 from tqdm import tqdm
 import yaml
 import glob
 
-
-
-# Imports from your src folder
-from src.data_loaders import EnhancementDataset
-from src.model.assembled import EventImageFusionNet
-
-# --- CONFIG LOADING ---
-with open("configs/config.yaml", 'r') as f:
+REPO_ROOT = find_evision_root()
+configs_path = REPO_ROOT / 'configs' / 'config.yaml'
+with open(configs_path, 'r') as f:
     cfg = yaml.safe_load(f)
 
 
-EVENTS_DIR = cfg['data']['events_dir']
-INPUT_DIR = cfg['data']['input_dir']
-TARGET_DIR = cfg['data']['target_dir']
+type = cfg['training']['type']
+EVENTS_DIR = REPO_ROOT / 'data' / f'{type}' / 'events'
+INPUT_DIR = REPO_ROOT / 'data' / f'{type}' / 'input'
+TARGET_DIR = REPO_ROOT / 'data' / f'{type}' / 'target'
+SAVE_DIR = str(REPO_ROOT / cfg['training']['save_dir'])
 
 BINS = cfg['model']['num_bins']
 HEIGHT = cfg['model']['height']
@@ -33,14 +33,13 @@ ENCODER_CHANNELS = cfg['model']['encoder_channels']
 RFB_BLOCKS = cfg['model']['rfb_blocks']
 
 BATCH_SIZE = cfg['training']['batch_size']
-SAVE_DIR = cfg['training']['save_dir']
 EPOCHS = cfg['training']['epochs']
 LR = cfg['training']['learning_rate']
 LPIPS_NET = cfg['training']['lpips_net']
 WORKERS = cfg['training']['num_workers']
 SAVES = cfg['training']['num_saves']
 LR_REDUCTION = cfg['training']['learning_rate_reduction']
-LR_STEP = cfg['training']['learning_rate_step_size']
+LR_STEP = cfg['training']['learning_epochs']
 
 def train():
     # 1. SETUP
@@ -72,7 +71,7 @@ def train():
         train_ds,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=4,
+        num_workers=WORKERS,
         pin_memory=True,
         persistent_workers=True,
         collate_fn=collate_fn_skip_bad

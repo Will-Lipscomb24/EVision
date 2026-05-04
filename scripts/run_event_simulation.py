@@ -2,20 +2,22 @@ import os
 import glob
 import subprocess
 import yaml
+from src.utils import find_evision_root
 
-
+REPO_ROOT = find_evision_root()
+configs_path = REPO_ROOT / 'configs' / 'config.yaml'
 # --- Configuration ---
-with open('configs/config.yaml','r') as f:
+with open(configs_path, 'r') as f:
     config = yaml.safe_load(f)
 ev_params = config["event_sim"]
 
-
-TARGET_DIR = config['data']['target_dir']
-EVENTS_DIR = config['data']['events_dir']
+type = config['training']['type']
+TARGET_DIR = str(REPO_ROOT / 'data' / f'{type}' / 'target')
+EVENTS_DIR = str(REPO_ROOT / 'data' / f'{type}' / 'events')
 
 # Path to the simulator script
 # Ensure this path is exactly correct on your system
-SIMULATOR_SCRIPT = "/home/will/projects/EVision/tools/openeb/sdk/modules/core_ml/python/samples/viz_video_to_event_simulator/viz_video_to_event_simulator.py"
+SIMULATOR_SCRIPT = REPO_ROOT / "tools" / "openeb" / "sdk" / "modules" / "core_ml" / "python" / "samples" / "viz_video_to_event_simulator" / "viz_video_to_event_simulator.py"
 
 image_paths = sorted(glob.glob(os.path.join(TARGET_DIR, "*.jpg")))
 
@@ -43,7 +45,7 @@ def run_simulation():
                 "python", SIMULATOR_SCRIPT,
                 str(input_img),
                 "-o", str(output_dat),
-                "--no_display",
+                "--display", str(ev_params['display']),
                 "--Cp", str(ev_params['Cp']),
                 "--Cn", str(ev_params['Cn']),
                 "--refractory_period", str(ev_params['refractory_period']),
