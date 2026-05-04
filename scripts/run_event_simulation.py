@@ -1,4 +1,5 @@
 import os
+import glob
 import subprocess
 import yaml
 
@@ -16,7 +17,7 @@ EVENTS_DIR = config['data']['events_dir']
 # Ensure this path is exactly correct on your system
 SIMULATOR_SCRIPT = "/home/will/projects/EVision/tools/openeb/sdk/modules/core_ml/python/samples/viz_video_to_event_simulator/viz_video_to_event_simulator.py"
 
-
+image_paths = sorted(glob.glob(os.path.join(TARGET_DIR, "*.jpg")))
 
 
 def run_simulation():
@@ -24,12 +25,12 @@ def run_simulation():
     os.makedirs(EVENTS_DIR, exist_ok=True)
     print(f"Output directory ready: {EVENTS_DIR}")
 
-    # 2. Loop through IDs 0001 to 1000
-    for i in range(1, 5001):
-        # Format ID with leading zeros (e.g., 1 -> "0001")
-        file_id = f"{i:04d}"
-        print(file_id)
-        input_img = os.path.join(TARGET_DIR, f"{file_id}.jpg")
+    # 2. Loop through image ID's
+    for img_path in image_paths:
+        
+        file_id = os.path.splitext(os.path.basename(img_path))[0]
+
+        input_img = img_path
         output_dat = os.path.join(EVENTS_DIR, f"{file_id}.dat")
 
         # 3. Check if input image exists
@@ -50,7 +51,9 @@ def run_simulation():
                 "--cutoff_hz", str(ev_params['cutoff_hz']),
                 "--shot_noise_rate_hz", str(ev_params['shot_noise_rate_hz']),
                 "--max_frames", str(ev_params['max_frames']),
-                "--pause_probability", str(ev_params['pause_probability'])
+                "--pause_probability", str(ev_params['pause_probability']),
+                "--rotational_offset", str(ev_params['rotational_offset']),
+                "--translational_offset", str(ev_params['translational_offset'])
             ]
 
             try:

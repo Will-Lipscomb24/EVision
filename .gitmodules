@@ -1,4 +1,4 @@
 [submodule "tools/openeb"]
 	path = tools/openeb
 	url = https://github.com/Will-Lipscomb24/openeb
-	branch = simulator_delta
+	branch = new_sim

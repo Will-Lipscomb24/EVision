@@ -19,6 +19,10 @@ event_sim:
   shot_noise_rate_hz: 2
   max_frames: 20
   pause_probability: 0
+  rotational_offset: 0.05
+  translational_offset: 0.35
+  max_optical_flow: 2.0
+  max_interp_frames: 20
 training: 
   save_dir: "model_output"
   epochs: 100
