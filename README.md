@@ -5,7 +5,7 @@ This repo serves as a computer vision pipeline where you can generate synthetic 
 * [Installation](#installation)
 * [Data Generation](#data-generation)
 * [Training](#training)
-* [Testing & Analysis](#testing&analysis)
+* [Testing & Analysis](#testing--analysis)
 
 
 ## Installation
@@ -23,31 +23,31 @@ If you want to use an IDS event camera, the plugin will need to be installed and
 export MV_HAL_PLUGIN_PATH=<plugin_path>
 ```
 The plugin path after installing the IDS plugin should resemble `/opt/ueye-evs/lib/ids/ueye_evs/hal/plugins`. Note that the setup of the IDS event camera plugin isn't necessary for the generation on synthetic events.
-
+To test if the installations succeeded, plugin the camera whos plugin was linked and run:
+```
+metavision_viewer
+```
+This should show a live-stream of the event camera output.
 
 ## Data Generation
-The dataset that was used to generate synthetic events was a 15k subset of the 2017 the open-source **MSCOCO** dataset. To download it run:
+The dataset that was used to generate synthetic events was a 15k subset of the 2017 open-source **MSCOCO** dataset. To download it run:
 ```
 wget http://images.cocodataset.org/zips/train2017.zip
 unzip train2017.zip
 ```
-and unzip it. 
-There are a few steps that need to take place to get the data in the proper form for training:
+There are a few steps that need to take place to get the data in the proper form for training. This includes renaming the files, scaling to a unique size, converting to gray-scale, and over-exposing the input images.
 
-* [Renaming](#renaming)
-* [Scaling](#scaling)
-* [Converting to Gray-scale](#converting-to-gray-scale)
-* [Poorly Exposing](#poorly-exposing)
-
-All of these functions exist in `EVision/src/utils`. The config file has parameters under `model` that need to be set by the user. 
+All of these functions exist in `EVision/src/utils`. The config file has parameters under `model` and `training` that need to be set by the user. 
 
 | Parameter | Description |
 | :--- | :--- |
 | `model: desired_images` | Subset of images from the downloaded MSCOCO dataset that will be trained on |
-| `model: height` | Image height used for training and the reconstruction |
-| `model: width` | Image width used for training and the reconstruction |
+| `model: height` | Image height used for training and reconstruction |
+| `model: width` | Image width used for training and reconstruction |
+| `training: type` | Set as training or testing based on if you want to use the data to train a model or simply inference |
 
-By running `generate_image_dataset.py` the necessary functions will be ran and a new directory called /**data** should exist housing the /**target** and /**input** datasets with the specified configuration.
+
+By running `generate_image_dataset.py` the necessary functions will be ran and a new directory called /**data** should exist housing the /**\<type>/target** and /**\<type>/input** datasets with the specified configuration parameters.
 
 Once the image data is created, the synthetic events can be generated. The following parameters can be set according to the use case of the event camera.
 
@@ -67,14 +67,14 @@ Once the image data is created, the synthetic events can be generated. The follo
 | `event_sim: max_interp_frames` | Max number of intermediate frames between keyframes |
 | `display` | Boolean to display the raw image and generated events |
 
-To begin the event data generation simply run the ` run_event_simulation.py` script. The event simulation process may take a day or two to complete primarily depending on the number of images and the number of frames being generated.
+To begin the event data generation simply run the ` run_event_simulation.py` script. The event simulation process may take a day or two to complete primarily depending on the number of images being used and the number of frames being generated.
 
 
 ## Training
 Once the data set is fully generated, i.e. the target images, input images, and event .dat files are created, then the model training can start. The following parameters can be set prior to training:
 | Parameter | Description |
 | :--- | :--- |
-| `training: type`     | Specify if the data is being used for training or for validation |
+| `training: type`     | Specify if the data is being used for training or for testing |
 | `training: save_dir` | The output directory for the trained models|
 | `training: epochs` | The number of passes of the entire dataset through the network|
 | `training: batch_size` | The number of examples processed at once before the weights get updated|
@@ -88,6 +88,12 @@ Once the data set is fully generated, i.e. the target images, input images, and 
 Once the training parameters are set, the file `train.py` can be ran. This file is located in the **/src** directory.
 
 ## Testing & Analysis
-To test a train model, you need to download a subset of images that you want to test the model from the MSCOCO website. Then in the configs change `training:type` from `training` to `testing`. Re-run the `generate_image_dataset.py` file and finally run `testing.py` located again in the **/src** directory. This will create a **/results** directory with all of the processed images. 
+### Testing
+To test a trained model, you need to download a subset of images that you want to test the model on from the MSCOCO website. Then in the configuration file change `training:type` from `training` to `testing`. Re-run the `generate_image_dataset.py` file and finally run `testing.py` located again in the **/src** directory. This will create a **/results** directory with all of the processed images. 
+### Analysis
+Once all of the testing images are processed, we can run a performance test. The performance metrics are:
+* LPIPS
+* PSNR 
+* SSIM
 
-
+Once the performance metrics are generated, they can be compared against papers that use similar pipelines to determine how the model compares. Run `performance_metrics.py` housed in the **/analysis** directory to compute the mean values for all 3 metrics. 

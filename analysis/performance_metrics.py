@@ -4,10 +4,18 @@ import torch
 import numpy as np
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 from torchmetrics.image.ssim import StructuralSimilarityIndexMeasure
+import yaml
+from src.utils import find_evision_root
 
-# Image Paths
-target_path = '/home/will/projects/EVision/data/validation_data/target'
-inference_path = '/home/will/projects/EVision/data/validation_data/results'
+REPO_ROOT = find_evision_root()
+configs_dir = REPO_ROOT / 'configs' / 'config.yaml'
+with open(configs_dir, 'r') as f:
+    config = yaml.safe_load(f)
+
+
+type = config['training']['type']
+target_path = str(REPO_ROOT / 'data' / f'{type}' / 'target')
+inference_path = str(REPO_ROOT / 'data' / f'{type}' / 'results')
 
 # LPIPS Initialization
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -58,10 +66,8 @@ def load_grayscale_tensor(path):
 # -------------------------------------------------
 scores = []
 
-target_images = sorted(os.listdir(target_path))[:11]
-
 with torch.no_grad():
-    for filename in target_images:
+    for filename in target_path.glob("*.jpg"):
 
         target_file = os.path.join(target_path, filename)
         pred_file = os.path.join(inference_path, filename)
