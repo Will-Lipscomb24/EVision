@@ -45,7 +45,6 @@ def run_simulation():
                 "python", SIMULATOR_SCRIPT,
                 str(input_img),
                 "-o", str(output_dat),
-                "--display", str(ev_params['display']),
                 "--Cp", str(ev_params['Cp']),
                 "--Cn", str(ev_params['Cn']),
                 "--refractory_period", str(ev_params['refractory_period']),
@@ -57,7 +56,8 @@ def run_simulation():
                 "--rotational_offset", str(ev_params['rotational_offset']),
                 "--translational_offset", str(ev_params['translational_offset'])
             ]
-
+            if ev_params['display']:
+                cmd.append("--display")
             try:
                 # 5. Run the command
                 # capture_output=True keeps your terminal clean, remove it to see simulator logs

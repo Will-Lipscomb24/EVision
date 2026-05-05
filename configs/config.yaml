@@ -1,9 +1,9 @@
 
 model:
-  desired_images: 1000
+  desired_images: 10000
   num_bins: 5
-  height: 512
-  width: 512
+  height: 720
+  width: 1280
   base_channels: 64
   encoder_channels: 16
   rfb_blocks: 3
@@ -11,12 +11,12 @@ event_sim:
   Cp: 0.1
   Cn: 0.1
   refractory_period: 10
-  sigma_threshold: 0.03
+  sigma_threshold: 0.05
   cutoff_hz: 0
   shot_noise_rate_hz: 2
-  max_frames: 20
+  max_frames: 15
   pause_probability: 0
-  rotational_offset: 0.05
+  rotational_offset: 0.0
   translational_offset: 0.35
   max_optical_flow: 2.0
   max_interp_frames: 20
